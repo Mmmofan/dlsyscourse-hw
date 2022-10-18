@@ -2,4 +2,5 @@
 .ipynb_checkpoints/*
 .vscode*
 __pycache__
-
+*build*
+*.so

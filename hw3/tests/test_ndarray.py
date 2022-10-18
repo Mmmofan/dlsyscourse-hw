@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./python')
 import numpy as np
 import pytest
 import mugrade
@@ -325,6 +327,7 @@ def test_scalar_div(device):
 def test_scalar_power(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
+    print(A)
     np.testing.assert_allclose(np.power(A, 5.), (B**5.).numpy(), atol=1e-5, rtol=1e-5)
     np.testing.assert_allclose(np.power(A, 0.5), (B**0.5).numpy(), atol=1e-5, rtol=1e-5)
 
