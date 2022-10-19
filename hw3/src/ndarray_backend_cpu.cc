@@ -339,7 +339,15 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < m; ++i) {
+    for (size_t j = 0; j < p; ++j) {
+      scalar_t val = 0.0;
+      for (size_t k = 0; k < n; ++k) {
+        val += (a.ptr[n * i + k] * b.ptr[k * p + j]);
+      }
+      out->ptr[i * p + j] = val;
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -369,7 +377,13 @@ inline void AlignedDot(const float* __restrict__ a,
   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < TILE; ++i) {
+    for (size_t j = 0; j < TILE; ++j) {
+      for (size_t k = 0; k < TILE; ++k) {
+        out[i * TILE + j]+= (a[TILE * i + k] * b[k * TILE + j]);
+      }
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -395,7 +409,17 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN YOUR SOLUTION
-  
+  uint32_t tile_num = TILE * TILE;
+  for (size_t i = 0; i < m/TILE; ++i) {
+    for (size_t j = 0; j < p/TILE; ++j) {
+      for (size_t k = 0; k < n/TILE; ++k) {
+        uint32_t a_idx = i * n * TILE + k * TILE * TILE;
+        uint32_t b_idx = k * p * TILE + i * TILE * TILE;
+        uint32_t out_idx = i * p * TILE + j * TILE * TILE;
+        AlignedDot(&a.ptr[a_idx], &b.ptr[b_idx], &out->ptr[out_idx]);
+      }
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -410,7 +434,14 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < out->size; ++i) {
+    scalar_t val = -INFINITY;
+    for (size_t j = 0; j < reduce_size; ++j) {
+      val = std::max(val, a.ptr[i * reduce_size + j]);
+    }
+    std::cout << "val: " << val << std::endl;
+    out->ptr[i] = val;
+  }
   /// END YOUR SOLUTION
 }
 
@@ -425,7 +456,13 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < out->size; ++i) {
+    scalar_t val = 0.0;
+    for (size_t j = 0; j < reduce_size; ++j) {
+      val += a.ptr[i * reduce_size + j];
+    }
+    out->ptr[i] = val;
+  }
   /// END YOUR SOLUTION
 }
 
