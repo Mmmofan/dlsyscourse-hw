@@ -256,68 +256,60 @@ enum class _ScalarOp {
 
 template<_EwiseOp op>
 void EwiseOp(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  if constexpr (op == _EwiseOp::MUL) {
-    for (size_t i = 0; i < a.size; ++i)
+  for (size_t i = 0; i < a.size; ++i) {
+    if constexpr (op == _EwiseOp::MUL) {
       out->ptr[i] = a.ptr[i] * b.ptr[i];
-  }
-  if constexpr (op == _EwiseOp::DIV) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _EwiseOp::DIV) {
       out->ptr[i] = a.ptr[i] / b.ptr[i];
-  }
-  if constexpr (op == _EwiseOp::MAX) {
-    for (size_t i = 0; i < a.size; ++i)
-      out->ptr[i] = std::max(a.ptr[i], b.ptr[i]);
-  }
-  if constexpr (op == _EwiseOp::EQ) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _EwiseOp::MAX) {
+    out->ptr[i] = std::max(a.ptr[i], b.ptr[i]);
+    }
+    if constexpr (op == _EwiseOp::EQ) {
       out->ptr[i] = (scalar_t)(a.ptr[i] == b.ptr[i]);
-  }
-  if constexpr (op == _EwiseOp::GE) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _EwiseOp::GE) {
       out->ptr[i] = (scalar_t)(a.ptr[i] >= b.ptr[i]);
+    }
   }
 }
 template<_EwiseOp op>
 void EwiseFunc(const AlignedArray& a, AlignedArray* out) {
-  if constexpr (op == _EwiseOp::LOG) {
-    for (size_t i = 0; i < a.size; ++i)
+  for (size_t i = 0; i < a.size; ++i) {
+    if constexpr (op == _EwiseOp::LOG) {
       out->ptr[i] = std::log(a.ptr[i]);
-  }
-  if constexpr (op == _EwiseOp::EXP) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _EwiseOp::EXP) {
       out->ptr[i] = std::exp(a.ptr[i]);
-  }
-  if constexpr (op == _EwiseOp::TANH) {
-    for (size_t i = 0; i < a.size; ++i)
-      out->ptr[i] = std::tanh(a.ptr[i]);
+    }
+    if constexpr (op == _EwiseOp::TANH) {
+    out->ptr[i] = std::tanh(a.ptr[i]);
+    }
   }
 }
 
 template<_ScalarOp op>
 void ScalarOp(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  if constexpr (op == _ScalarOp::MUL) {
-    for (size_t i = 0; i < a.size; ++i)
+  for (size_t i = 0; i < a.size; ++i) {
+    if constexpr (op == _ScalarOp::MUL) {
       out->ptr[i] = a.ptr[i] * val;
-  }
-  if constexpr (op == _ScalarOp::DIV) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _ScalarOp::DIV) {
       out->ptr[i] = a.ptr[i] / val;
-  }
-  if constexpr (op == _ScalarOp::POWER) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _ScalarOp::POWER) {
       out->ptr[i] = std::pow(a.ptr[i], val);
-  }
-  if constexpr (op == _ScalarOp::MAX) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _ScalarOp::MAX) {
       out->ptr[i] = std::max(a.ptr[i], val);
-  }
-  if constexpr (op == _ScalarOp::EQ) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _ScalarOp::EQ) {
       out->ptr[i] = (uint32_t)(a.ptr[i] == val);
-  }
-  if constexpr (op == _ScalarOp::GE) {
-    for (size_t i = 0; i < a.size; ++i)
+    }
+    if constexpr (op == _ScalarOp::GE) {
       out->ptr[i] = (uint32_t)(a.ptr[i] >= val);
+    }
   }
 }
 
@@ -380,7 +372,7 @@ inline void AlignedDot(const float* __restrict__ a,
   for (size_t i = 0; i < TILE; ++i) {
     for (size_t j = 0; j < TILE; ++j) {
       for (size_t k = 0; k < TILE; ++k) {
-        out[i * TILE + j]+= (a[TILE * i + k] * b[k * TILE + j]);
+        out[i * TILE + j] += (a[TILE * i + k] * b[k * TILE + j]);
       }
     }
   }
@@ -409,14 +401,12 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN YOUR SOLUTION
-  uint32_t tile_num = TILE * TILE;
   for (size_t i = 0; i < m/TILE; ++i) {
     for (size_t j = 0; j < p/TILE; ++j) {
       for (size_t k = 0; k < n/TILE; ++k) {
-        uint32_t a_idx = i * n * TILE + k * TILE * TILE;
-        uint32_t b_idx = k * p * TILE + i * TILE * TILE;
-        uint32_t out_idx = i * p * TILE + j * TILE * TILE;
-        AlignedDot(&a.ptr[a_idx], &b.ptr[b_idx], &out->ptr[out_idx]);
+        AlignedDot(&a.ptr[i * n * TILE + k * TILE * TILE],
+                   &b.ptr[k * p * TILE + j * TILE * TILE],
+                   &out->ptr[i * p * TILE + j * TILE * TILE]);
       }
     }
   }
@@ -439,7 +429,6 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
     for (size_t j = 0; j < reduce_size; ++j) {
       val = std::max(val, a.ptr[i * reduce_size + j]);
     }
-    std::cout << "val: " << val << std::endl;
     out->ptr[i] = val;
   }
   /// END YOUR SOLUTION
