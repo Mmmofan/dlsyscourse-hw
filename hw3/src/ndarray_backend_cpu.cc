@@ -160,7 +160,8 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
     for (size_t i = 0; i < dim; ++i) {
       idx += indices[i] * strides[i];
     }
-    out->ptr[idx] = val;
+    if (idx < size)
+      out->ptr[idx] = val;
 
     indices[dim-1]++;
     for (size_t i = 0; i < dim; ++i) {
@@ -370,6 +371,13 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
   /// BEGIN YOUR SOLUTION
   for (size_t i = 0; i < m/TILE; ++i) {
     for (size_t j = 0; j < p/TILE; ++j) {
+      // init output TILE x TILE
+      for (size_t ik = 0; ik < TILE; ++ik) {
+        for (size_t jk = 0; jk < TILE; ++jk) {
+          out->ptr[i * p * TILE + j * TILE * TILE + ik * TILE + jk] = 0.0;
+        }
+      }
+      // compute matmul TILE x TILE
       for (size_t k = 0; k < n/TILE; ++k) {
         AlignedDot(&a.ptr[i * n * TILE + k * TILE * TILE],
                    &b.ptr[k * p * TILE + j * TILE * TILE],
@@ -391,8 +399,9 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
+#pragma omp parallel for
   for (size_t i = 0; i < out->size; ++i) {
-    scalar_t val = -INFINITY;
+    scalar_t val = a.ptr[i * reduce_size];
     for (size_t j = 0; j < reduce_size; ++j) {
       val = std::max(val, a.ptr[i * reduce_size + j]);
     }
@@ -412,6 +421,7 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
+#pragma omp parallel for
   for (size_t i = 0; i < out->size; ++i) {
     scalar_t val = 0.0;
     for (size_t j = 0; j < reduce_size; ++j) {
