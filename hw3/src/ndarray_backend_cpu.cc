@@ -369,19 +369,38 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN YOUR SOLUTION
+  const size_t TILE2 = TILE * TILE;
+
   for (size_t i = 0; i < m/TILE; ++i) {
+    float A[TILE * n]; // pre-fetch A column
+    for (size_t ii = 0; ii < n/TILE; ++ii) {
+      for (size_t jj = 0; jj < TILE2; ++jj) {
+        A[ii * TILE2 + jj] = a.ptr[i * n * TILE + ii * TILE2 + jj];
+      }
+    }
     for (size_t j = 0; j < p/TILE; ++j) {
-      // init output TILE x TILE
-      for (size_t ik = 0; ik < TILE; ++ik) {
+      float B[TILE * n]; // pre-fetch B row
+      for (size_t ii = 0; ii < n/TILE; ++ii) {
+        for (size_t jj = 0; jj < TILE2; ++jj) {
+          B[ii * TILE2 + jj] = b.ptr[j * TILE2 + ii * TILE * p + jj];
+        }
+      }
+      for (size_t ik = 0; ik < TILE; ++ik) { // init output
         for (size_t jk = 0; jk < TILE; ++jk) {
           out->ptr[i * p * TILE + j * TILE * TILE + ik * TILE + jk] = 0.0;
         }
       }
-      // compute matmul TILE x TILE
       for (size_t k = 0; k < n/TILE; ++k) {
-        AlignedDot(&a.ptr[i * n * TILE + k * TILE * TILE],
-                   &b.ptr[k * p * TILE + j * TILE * TILE],
-                   &out->ptr[i * p * TILE + j * TILE * TILE]);
+        float C[TILE * TILE]; // prepare C to store result
+        for (size_t ii = 0; ii < TILE * TILE; ++ii) {
+          C[ii] = 0.0;
+        }
+        // compute matmul
+        AlignedDot(&A[k * TILE * TILE], &B[k * TILE * TILE], C);
+        // write result to memory
+        for (size_t ii = 0; ii < TILE * TILE; ++ii) {
+          out->ptr[i * p * TILE + j * TILE * TILE + ii] += C[ii];
+        }
       }
     }
   }

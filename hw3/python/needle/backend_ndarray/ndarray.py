@@ -298,14 +298,10 @@ class NDArray:
         ### BEGIN YOUR SOLUTION
         _strides = []
         for idx, shape in enumerate(new_shape):
-            if self.shape[idx] != 1:
-                assert shape == self.shape[idx]
-                _strides.append(self.strides[idx])
-            else:
-                _strides.append(0)
-        _shape = new_shape
+            stride = self.strides[idx] if self.shape[idx] != 1 else 0
+            _strides.append(stride)
         _strides = tuple(_strides)
-        return self.as_strided(_shape, _strides)
+        return self.as_strided(new_shape, _strides)
         ### END YOUR SOLUTION
 
     ### Get and set elements
