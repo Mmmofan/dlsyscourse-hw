@@ -72,11 +72,12 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> sha
 
   std::vector<size_t> indices(dim, 0);
   while (cnt < total_size) {
-    uint32_t idx = offset;
+    size_t idx = offset;
     for (size_t i = 0; i < dim; ++i) {
       idx += indices[i] * strides[i];
     }
-    out->ptr[cnt] = a.ptr[idx];
+    if (idx < a.size)
+      out->ptr[cnt] = a.ptr[idx];
 
     indices[dim-1]++;
     for (size_t i = 0; i < dim; ++i) {
@@ -112,11 +113,12 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
 
   std::vector<size_t> indices(dim, 0);
   while (cnt < total_size) {
-    uint32_t idx = offset;
+    size_t idx = offset;
     for (size_t i = 0; i < dim; ++i) {
       idx += indices[i] * strides[i];
     }
-    out->ptr[idx] = a.ptr[cnt];
+    if (idx < out->size)
+      out->ptr[idx] = a.ptr[cnt];
 
     indices[dim-1]++;
     for (size_t i = 0; i < dim; ++i) {
@@ -160,8 +162,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
     for (size_t i = 0; i < dim; ++i) {
       idx += indices[i] * strides[i];
     }
-    if (idx < size)
-      out->ptr[idx] = val;
+    out->ptr[idx] = val;
 
     indices[dim-1]++;
     for (size_t i = 0; i < dim; ++i) {
@@ -338,24 +339,19 @@ inline void AlignedDot(const float* __restrict__ a,
 
   /// BEGIN YOUR SOLUTION
   float c0;
-  float b0, b1, b2, b3, b4, b5, b6, b7;
-  int offset;
-  for (size_t j = 0; j < TILE; ++j) {
-    b0 = b[j]; b1 = b[TILE + j];
-    b2 = b[TILE * 2 + j]; b3 = b[TILE * 3 + j];
-    b4 = b[TILE * 4 + j]; b5 = b[TILE * 5 + j];
-    b6 = b[TILE * 6 + j]; b7 = b[TILE * 7 + j];
-    for (size_t i = 0; i < TILE; ++i) {
-      offset = i * TILE;
+  const float *a0;
+  for (size_t i = 0; i < TILE; ++i) {
+    for (size_t j = 0; j < TILE; ++j) {
+      a0 = &a[i * TILE];
       c0 = out[i * TILE + j];
-      c0 += a[offset++] * b0;
-      c0 += a[offset++] * b1;
-      c0 += a[offset++] * b2;
-      c0 += a[offset++] * b3;
-      c0 += a[offset++] * b4;
-      c0 += a[offset++] * b5;
-      c0 += a[offset++] * b6;
-      c0 += a[offset++] * b7;
+      c0 += *a0++ * b[j];
+      c0 += *a0++ * b[TILE + j];
+      c0 += *a0++ * b[TILE*2 + j];
+      c0 += *a0++ * b[TILE*3 + j];
+      c0 += *a0++ * b[TILE*4 + j];
+      c0 += *a0++ * b[TILE*5 + j];
+      c0 += *a0++ * b[TILE*6 + j];
+      c0 += *a0++ * b[TILE*7 + j];
       out[i * TILE + j] = c0;
     }
   }
