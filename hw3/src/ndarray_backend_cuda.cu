@@ -397,7 +397,7 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
   size_t grid_y = (P + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
   dim3 grids = dim3(grid_x, grid_y);
   dim3 blocks = dim3(THREAD_PER_BLOCK, THREAD_PER_BLOCK);
-  _MatmulKernel<<<grids, blocks>>>(a.ptr, b.ptr, out->ptr, M, N, P, out->size);
+  _MatmulKernel<<<grids, blocks>>>(a.ptr, b.ptr, out->ptr, M, N, P);
   /// END YOUR SOLUTION
 }
 

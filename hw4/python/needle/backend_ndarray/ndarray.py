@@ -246,7 +246,11 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if prod(new_shape) != prod(self.shape) or not self.is_compact():
+            raise ValueError()
+        _shape = new_shape
+        _strides = self.compact_strides(_shape)
+        return self.as_strided(_shape, _strides)
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
@@ -271,7 +275,14 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        _shape = []
+        _strides = []
+        for ax in new_axes:
+            _shape.append(self.shape[ax])
+            _strides.append(self.strides[ax])
+        _shape = tuple(_shape)
+        _strides = tuple(_strides)
+        return self.as_strided(_shape, _strides)
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
@@ -294,7 +305,16 @@ class NDArray:
             point to the same memory as the original array.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if (len(new_shape) == len(self.shape)):
+            _strides = []
+            for idx, shape in enumerate(new_shape):
+                stride = self.strides[idx] if self.shape[idx] != 1 else 0
+                _strides.append(stride)
+            _strides = tuple(_strides)
+        else:
+            _strides = [0] * (len(new_shape) - len(self.shape)) + list(self.strides)
+            _strides = tuple(_strides)
+        return self.as_strided(new_shape, _strides)
         ### END YOUR SOLUTION
 
     ### Get and set elements
@@ -351,7 +371,11 @@ class NDArray:
 
         # handle singleton as tuple, everything as slices
         if not isinstance(idxs, tuple):
-            idxs = (idxs,)
+            idxs = [idxs]
+        while len(idxs) < self.ndim:
+            idxs.append(slice(None, None, None))
+        idxs = tuple(idxs)
+            # idxs = (idxs,)
         idxs = tuple(
             [
                 self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
@@ -361,7 +385,18 @@ class NDArray:
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        _shape = []
+        _strides = []
+        _offset = 0
+        for i, idx in enumerate(idxs):
+            start, stop, step = idx.start, idx.stop, idx.step
+            if stop > self.shape[i]: stop = self.shape[i]
+            _shape.append(math.ceil((stop - start) / step))
+            _offset += (start * self.strides[i])
+            _strides.append(self.strides[i] * step)
+        return NDArray.make(
+            tuple(_shape), strides=tuple(_strides), device=self.device, handle=self._handle, offset=_offset
+        )
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
@@ -572,7 +607,16 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        strides = list(self.strides)
+        if isinstance(axes, int):
+            axes = [axes]
+        offset = 0
+        for ax in axes:
+            strides[ax] = -strides[ax]
+            offset += (self.shape[ax] - 1) * self.strides[ax]
+        return NDArray.make(
+            self.shape, strides=tuple(strides), device=self.device, handle=self._handle, offset=offset
+        ).compact()
         ### END YOUR SOLUTION
 
 
@@ -583,7 +627,18 @@ class NDArray:
         axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        shape = list(self.shape)
+        strides = []
+        stride = 1
+        for idx, ax in enumerate(axes):
+            shape[idx] += sum(ax)
+        for idx, sp in enumerate(shape[::-1]):
+            strides.append(stride)
+            stride *= sp
+        new_array = NDArray.make(
+            tuple(shape), strides=strides, device=self.device, handle=self._handle
+        )
+        # new_array
         ### END YOUR SOLUTION
 
 

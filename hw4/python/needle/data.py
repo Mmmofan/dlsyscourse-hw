@@ -26,7 +26,9 @@ class RandomFlipHorizontal(Transform):
         """
         flip_img = np.random.rand() < self.p
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if flip_img:
+            img = img[:, ::-1, :]
+        return img
         ### END YOUR SOLUTION
 
 
@@ -46,7 +48,13 @@ class RandomCrop(Transform):
             low=-self.padding, high=self.padding + 1, size=2
         )
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        h, w, c = img.shape
+        new_im = np.zeros([h + self.padding * 2, w + self.padding * 2, c])
+        new_im[self.padding: self.padding + h,
+            self.padding: self.padding + w, :] = img
+        coord_x = self.padding + shift_x
+        coord_y = self.padding + shift_y
+        return new_im[coord_x: coord_x + h, coord_y: coord_y + w, :]
         ### END YOUR SOLUTION
 
 
@@ -106,13 +114,24 @@ class DataLoader:
 
     def __iter__(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.idx = 0
+        self.len = len(self.dataset) // self.batch_size
+        if self.shuffle:
+            tmp_range = np.arange(len(self.dataset))
+            np.random.shuffle(tmp_range)
+            self.ordering = np.array_split(tmp_range,
+                range(self.batch_size, len(self.dataset), self.batch_size))
         ### END YOUR SOLUTION
         return self
 
     def __next__(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if self.idx < self.len:
+            data = self.dataset[self.ordering[self.idx]]
+            self.idx += 1
+            return [Tensor(x) for x in data]
+        else:
+            raise StopIteration
         ### END YOUR SOLUTION
 
 
@@ -124,21 +143,63 @@ class MNISTDataset(Dataset):
         transforms: Optional[List] = None,
     ):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        import gzip, struct
+        with gzip.open(image_filename) as f:
+            _, num, ros, cols = struct.unpack('>4I', f.read(16))
+            self.images = np.frombuffer(f.read(), dtype=np.uint8).reshape(num, 28*28)
+        with gzip.open(label_filename) as f:
+            _, num = struct.unpack('>2I', f.read(8))
+            self.labels = np.frombuffer(f.read(), dtype=np.uint8)
+        self.images = (self.images - self.images.min()) / (self.images.max() - self.images.min())
+        self.images = self.images.astype(np.float32)
+        assert self.images.shape[0] == self.labels.shape[0] == num
+
+        self.transforms = transforms
         ### END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        img = self.images[index]
+        label = self.labels[index]
+        if len(img.shape) > 1:
+            for b in range(img.shape[0]):
+                im = img[b].reshape(28, 28, 1)
+                if self.transforms is not None:
+                    for trans in self.transforms:
+                        im = trans(im)
+                    img[b] = im.reshape(-1)
+            return (img, label)
+        else:
+            img = img.reshape(28, 28, 1)
+            if self.transforms is not None:
+                for trans in self.transforms:
+                    img = trans(img)
+            return (img.reshape(-1), label)
         ### END YOUR SOLUTION
 
     def __len__(self) -> int:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return len(self.labels)
         ### END YOUR SOLUTION
 
 
 class CIFAR10Dataset(Dataset):
+    train_list = [
+        ["data_batch_1", "c99cafc152244af753f735de768cd75f"],
+        ["data_batch_2", "d4bba439e000b95fd0a9bffe97cbabec"],
+        ["data_batch_3", "54ebc095f3ab1f0389bbae665268c751"],
+        ["data_batch_4", "634d18415352ddfa80567beed471001a"],
+        ["data_batch_5", "482c414d41f54cd18b22e5b47cb7c3cb"],
+    ]
+    test_list = [
+        ["test_batch", "40351d587109b95175f43aff81a1287e"],
+    ]
+    meta = {
+        "filename": "batches.meta",
+        "key": "label_names",
+        "md5": "5ff9c542aee3614f3951f8cda6e48888",
+    }
+
     def __init__(
         self,
         base_folder: str,
@@ -156,7 +217,29 @@ class CIFAR10Dataset(Dataset):
         y - numpy array of labels
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.train = train
+        self.base_folder = base_folder
+        self.transforms = transforms
+
+        if self.train:
+            file_list = self.train_list
+        else:
+            file_list = self.test_list
+
+        self.data = []
+        self.targets = []
+        for file_name, checksum in file_list:
+            file_path = os.path.join(self.base_folder, file_name)
+            with open(file_path, 'rb') as f:
+                entry = pickle.load(f, encoding='latin1')
+                self.data.append(entry["data"])
+                if "labels" in entry:
+                    self.targets.extend(entry["labels"])
+                else:
+                    self.targets.extend(entry["fine_labels"])
+        self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
+        self.targets = np.asarray(self.targets)
+
         ### END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
@@ -165,7 +248,12 @@ class CIFAR10Dataset(Dataset):
         Image should be of shape (3, 32, 32)
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        img, target = self.data[index], self.targets[index]
+
+        if self.transforms is not None:
+            img = self.transforms(img)
+
+        return img, target
         ### END YOUR SOLUTION
 
     def __len__(self) -> int:
@@ -173,7 +261,7 @@ class CIFAR10Dataset(Dataset):
         Returns the total number of examples in the dataset
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return len(self.data)
         ### END YOUR SOLUTION
 
 
@@ -204,6 +292,7 @@ class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
         self.idx2word = []
+        self.idx = -1
 
     def add_word(self, word):
         """
@@ -213,7 +302,10 @@ class Dictionary(object):
         Returns the word's unique ID.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if word not in self.word2idx.keys():
+            self.idx += 1
+            self.word2idx[word] = self.idx
+            self.idx2word.append(word)
         ### END YOUR SOLUTION
 
     def __len__(self):
@@ -221,7 +313,7 @@ class Dictionary(object):
         Returns the number of unique words in the dictionary.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return self.idx + 1
         ### END YOUR SOLUTION
 
 
