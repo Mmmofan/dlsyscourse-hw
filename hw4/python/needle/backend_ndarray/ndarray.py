@@ -636,9 +636,13 @@ class NDArray:
             strides.append(stride)
             stride *= sp
         new_array = NDArray.make(
-            tuple(shape), strides=strides, device=self.device, handle=self._handle
+            tuple(shape), strides=strides[::-1], device=self.device
         )
-        # new_array
+        slices = tuple(
+            [slice(i, shape[idx] - j) for idx, (i, j) in enumerate(axes)]
+        )
+        new_array[slices] = self
+        return new_array
         ### END YOUR SOLUTION
 
 

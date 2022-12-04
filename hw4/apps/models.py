@@ -11,12 +11,41 @@ class ResNet9(ndl.nn.Module):
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
-        raise NotImplementedError() ###
+        self.block1 = nn.ConvBN(3, 16, 7, 4)
+        self.block2 = nn.ConvBN(16, 32, 3, 2)
+        self.res1 = nn.Residual(
+            nn.Sequential(
+                nn.ConvBN(32, 32, 3, 1),
+                nn.ConvBN(32, 32, 3, 1)
+            )
+        )
+        self.block3 = nn.ConvBN(32, 64, 3, 2)
+        self.block4 = nn.ConvBN(64, 128, 3, 2)
+        self.res2 = nn.Residual(
+            nn.Sequential(
+                nn.ConvBN(128, 128, 3, 1),
+                nn.ConvBN(128, 128, 3, 1),
+            )
+        )
+        self.flatten = nn.Flatten()
+        self.linear1 = nn.Linear(128, 128)
+        self.relu = nn.ReLU()
+        self.linear2 = nn.Linear(128, 10)
         ### END YOUR SOLUTION
 
     def forward(self, x):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.res1(x)
+        x = self.block3(x)
+        x = self.block4(x)
+        x = self.res2(x)
+        x = self.flatten(x)
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.linear2(x)
+        return x
         ### END YOUR SOLUTION
 
 

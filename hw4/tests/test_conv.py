@@ -97,7 +97,7 @@ def test_pad_forward(params, device):
     A = nd.NDArray(_A, device=device)
     B = A.pad(padding)
 
-    assert np.linalg.norm(A.numpy() - _A) < 1e-4
+    assert np.linalg.norm(B.numpy() - _B) < 1e-4
 
 
 flip_forward_params = [
