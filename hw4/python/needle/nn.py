@@ -266,6 +266,18 @@ class Residual(Module):
         return ops.add(x, self.fn(x))
         ### END YOUR SOLUTION
 
+
+class ConvBN(Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, bias=True, device=None, dtype="float32"):
+        super().__init__()
+        self.conv = Conv(in_channels, out_channels, kernel_size, stride, bias, device, dtype)
+        self.bn = BatchNorm2d(out_channels)
+        self.relu = ReLU()
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.relu(self.bn(self.conv(x)))
+
+
 class Conv(Module):
     """
     Multi-channel 2D convolutional layer
@@ -284,14 +296,29 @@ class Conv(Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
+        self.bias = bias
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.padding = self.kernel_size // 2
+        self.weight = Parameter(
+            init.kaiming_uniform(
+                in_channels,
+                out_channels,
+                shape=[out_channels, in_channels, kernel_size, kernel_size]
+            )
+        )
+        if bias:
+            self.offset = Parameter(
+                init.constant(out_channels, c=0)
+            )
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x = ops.conv(x, self.weight, stride=self.stride, padding=self.padding)
+        if self.bias:
+            x = x + ops.broadcast_to(self.offset, x.shape)
+        return x
         ### END YOUR SOLUTION
 
 

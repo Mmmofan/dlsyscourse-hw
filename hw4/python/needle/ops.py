@@ -604,7 +604,13 @@ class Conv(TensorOp):
 
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        N, H, W, C = A.shape
+        K, _, I, O = B.shape
+        assert C == I, "input tensor shape and kernel dosen't match"
+
+        oH = (H + self.padding * 2 - K + 1) / self.stride
+        oW = (W + self.padding * 2 - K + 1) / self.stride
+        out = numpy.zeros([N, oH, oW, O])
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
