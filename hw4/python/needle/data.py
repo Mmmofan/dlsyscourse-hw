@@ -249,6 +249,7 @@ class CIFAR10Dataset(Dataset):
         """
         ### BEGIN YOUR SOLUTION
         img, target = self.data[index], self.targets[index]
+        img = (img - img.min()) / (img.max() - img.min()) # norm
 
         if self.transforms is not None:
             img = self.transforms(img)

@@ -628,16 +628,9 @@ class NDArray:
         """
         ### BEGIN YOUR SOLUTION
         shape = list(self.shape)
-        strides = []
-        stride = 1
         for idx, ax in enumerate(axes):
             shape[idx] += sum(ax)
-        for idx, sp in enumerate(shape[::-1]):
-            strides.append(stride)
-            stride *= sp
-        new_array = NDArray.make(
-            tuple(shape), strides=strides[::-1], device=self.device
-        )
+        new_array = NDArray(np.zeros(shape), device=self.device)
         slices = tuple(
             [slice(i, shape[idx] - j) for idx, (i, j) in enumerate(axes)]
         )

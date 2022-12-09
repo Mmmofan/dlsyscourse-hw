@@ -405,17 +405,17 @@ class LogSumExp(TensorOp):
         ### BEGIN YOUR SOLUTION
         inp = node.inputs[0]
         input_shape = inp.shape
-        mZ = self.mZ.broadcast_to(input_shape)
+        mZ = Tensor(self.mZ.broadcast_to(input_shape), device=inp.device)
         base_shape = list(input_shape)
         if isinstance(self.axes, int): self.axes = (self.axes,)
         axes = list(range(len(base_shape))) \
             if self.axes is None else self.axes
         for ax in axes:
             base_shape[ax] = 1
-        out_grad = out_grad / (inp - mZ).exp().sum(self.axes)
+        out_grad = out_grad / summation(exp((inp - mZ)), self.axes)
         out_grad = out_grad.reshape(base_shape)
         out_grad = out_grad.broadcast_to(input_shape)
-        out_grad = out_grad * (inp - mZ).exp()
+        out_grad = out_grad * exp(inp - mZ)
         return (out_grad,)
         ### END YOUR SOLUTION
 
@@ -434,7 +434,7 @@ class Tanh(TensorOp):
         ### BEGIN YOUR SOLUTION
         inp = node.inputs[0]
         out_grad = out_grad * (
-            1 - (tanh(inp) ** 2)
+            1 + (-tanh(inp) ** 2)
         )
         return (out_grad,)
         ### END YOUR SOLUTION
@@ -550,11 +550,14 @@ class Dilate(TensorOp):
         out_shape = list(shape)
         slices = [slice(0, out_shape[idx]) for idx in range(len(shape))]
         for ax in self.axes:
+            if ax >= len(out_shape):
+                continue
             out_shape[ax] = out_shape[ax] * (1 + self.dilation)
             slices[ax] = slice(0, out_shape[ax], 1 + self.dilation)
-        out_tensor = numpy.zeros(out_shape)
-        out_tensor[tuple(slices)] = a.numpy()
-        return Tensor(out_tensor)
+        out_tensor = NDArray.make(out_shape, device=a.device)
+        out_tensor.fill(0)
+        out_tensor[tuple(slices)] = a
+        return out_tensor
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -577,8 +580,10 @@ class UnDilate(TensorOp):
         shape = a.shape
         slices = [slice(0, shape[idx]) for idx in range(len(shape))]
         for ax in self.axes:
+            if ax >= len(shape):
+                continue
             slices[ax] = slice(0, shape[ax], 1 + self.dilation)
-        return Tensor(a[tuple(slices)])
+        return a[tuple(slices)].compact()
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
