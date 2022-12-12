@@ -247,7 +247,14 @@ class NDArray:
 
         ### BEGIN YOUR SOLUTION
         if prod(new_shape) != prod(self.shape) or not self.is_compact():
-            raise ValueError()
+            if -1 in new_shape and new_shape.count(-1) == 1:
+                val = int(prod(self.shape) / prod(new_shape) * -1)
+                tmp_shape = []
+                for dim in new_shape:
+                    tmp_shape.append(dim if dim != -1 else val)
+                new_shape = tuple(tmp_shape)
+            else:
+                raise ValueError()
         _shape = new_shape
         _strides = self.compact_strides(_shape)
         return self.as_strided(_shape, _strides)
@@ -370,12 +377,11 @@ class NDArray:
         """
 
         # handle singleton as tuple, everything as slices
-        if not isinstance(idxs, tuple):
-            idxs = [idxs]
+        if isinstance(idxs, int):
+            idxs = (idxs,)
+        idxs = list(idxs)
         while len(idxs) < self.ndim:
             idxs.append(slice(None, None, None))
-        idxs = tuple(idxs)
-            # idxs = (idxs,)
         idxs = tuple(
             [
                 self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
@@ -391,9 +397,11 @@ class NDArray:
         for i, idx in enumerate(idxs):
             start, stop, step = idx.start, idx.stop, idx.step
             if stop > self.shape[i]: stop = self.shape[i]
-            _shape.append(math.ceil((stop - start) / step))
             _offset += (start * self.strides[i])
-            _strides.append(self.strides[i] * step)
+            tmp_dim = math.ceil((stop - start) / step)
+            if tmp_dim > 1:
+                _shape.append(tmp_dim)
+                _strides.append(self.strides[i] * step)
         return NDArray.make(
             tuple(_shape), strides=tuple(_strides), device=self.device, handle=self._handle, offset=_offset
         )

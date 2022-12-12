@@ -604,13 +604,29 @@ class Conv(TensorOp):
 
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
-        N, H, W, C = A.shape
-        K, _, I, O = B.shape
-        assert C == I, "input tensor shape and kernel dosen't match"
+        N, H, W, C_in = A.shape
+        K, _, I, C_out = B.shape
+        assert C_in == I, "input tensor shape and kernel dosen't match"
 
-        oH = (H + self.padding * 2 - K + 1) / self.stride
-        oW = (W + self.padding * 2 - K + 1) / self.stride
-        out = numpy.zeros([N, oH, oW, O])
+        _A = A.pad((
+            (0, 0),
+            (self.padding, self.padding),
+            (self.padding, self.padding),
+            (0, 0))
+        ) if self.padding > 0 else A
+
+        inner_dim = K * K * C_in
+        Ns, Hs, Ws, Cs = _A.strides
+        H_out = (H - K + 2 * self.padding) // self.stride + 1
+        W_out = (W - K + 2 * self.padding) // self.stride + 1
+
+        _A = _A.as_strided(
+            shape=(N, H_out, W_out, K, K, C_in),
+            strides=(Ns, Hs*self.stride, Ws*self.stride, Hs, Ws, Cs)
+        ).compact().reshape((-1, inner_dim))
+        out = _A @ B.reshape((-1, C_out))
+
+        return out.reshape((N, H_out, W_out, C_out))
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):

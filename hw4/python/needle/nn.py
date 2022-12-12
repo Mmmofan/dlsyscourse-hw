@@ -296,7 +296,8 @@ class Conv(Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
-        self.bias = bias
+        self.device = device
+        self.dtype = dtype
 
         ### BEGIN YOUR SOLUTION
         self.padding = self.kernel_size // 2
@@ -304,20 +305,37 @@ class Conv(Module):
             init.kaiming_uniform(
                 in_channels,
                 out_channels,
-                shape=[out_channels, in_channels, kernel_size, kernel_size]
+                shape=[kernel_size, kernel_size, in_channels, out_channels],
+                dtype=dtype,
+                device=device
             )
         )
+        self.bias = None
         if bias:
-            self.offset = Parameter(
-                init.constant(out_channels, c=0)
+            prob = 1.0 / (in_channels * kernel_size ** 2) ** 0.5
+            self.bias = Parameter(
+                init.rand(
+                    out_channels,
+                    low=-prob,
+                    high=prob,
+                    device=device,
+                    dtype=dtype
+                )
             )
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
+        x = ops.transpose(
+            ops.transpose(x),
+            (1, 3)
+        ) # NCHW -> NCWH -> NHWC
         x = ops.conv(x, self.weight, stride=self.stride, padding=self.padding)
-        if self.bias:
-            x = x + ops.broadcast_to(self.offset, x.shape)
+        if self.bias is not None:
+            x = x + ops.broadcast_to(self.bias, x.shape)
+        x = ops.transpose(
+            ops.transpose(x, (1,3))
+        ) # NHWC -> NCWH -> NCHW
         return x
         ### END YOUR SOLUTION
 
