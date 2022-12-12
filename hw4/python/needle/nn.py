@@ -303,8 +303,8 @@ class Conv(Module):
         self.padding = self.kernel_size // 2
         self.weight = Parameter(
             init.kaiming_uniform(
-                in_channels,
-                out_channels,
+                kernel_size * kernel_size * in_channels,
+                kernel_size * kernel_size * out_channels,
                 shape=[kernel_size, kernel_size, in_channels, out_channels],
                 dtype=dtype,
                 device=device
