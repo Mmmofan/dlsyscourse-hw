@@ -261,6 +261,14 @@ class Summation(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
+        if isinstance(self.axes, (tuple, list)) and len(self.axes) > 1:
+            axes = list(self.axes)[::-1]
+            increments = 0
+            while len(axes) > 0:
+                a = a.sum(axes[-1] - increments)
+                axes.pop()
+                increments += 1
+            return a
         return a.sum(self.axes)
         ### END YOUR SOLUTION
 
