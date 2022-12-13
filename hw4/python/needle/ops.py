@@ -632,14 +632,39 @@ class Conv(TensorOp):
             shape=(N, H_out, W_out, K, K, C_in),
             strides=(Ns, Hs*self.stride, Ws*self.stride, Hs, Ws, Cs)
         ).compact().reshape((-1, inner_dim))
-        out = _A @ B.reshape((-1, C_out))
+        _B = B.compact().reshape((-1, C_out))
+        out = _A @ _B
 
         return out.reshape((N, H_out, W_out, C_out))
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        inp, weight = node.inputs
+        # grad w.r.t input
+        grad_pad = dilate(out_grad, (1, 2), self.stride - 1)
+        weight_t = flip(weight, (0, 1))
+        weight_t = weight_t.transpose()
+        K = weight_t.shape[0]
+        grad_inp = conv(
+            grad_pad,
+            weight_t,
+            1,
+            K - 1 - self.padding
+        )
+
+        # grad w.r.t kernel
+        grad_pad = grad_pad.transpose((0, 2)).transpose((0, 1))
+        inp_t = inp.transpose((0, 3))
+        grad_weight = conv(
+            inp_t,
+            grad_pad,
+            1,
+            self.padding
+        )
+        grad_weight = grad_weight.transpose((0, 2)).transpose((0, 1))
+
+        return (grad_inp, grad_weight)
         ### END YOUR SOLUTION
 
 

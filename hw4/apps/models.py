@@ -11,26 +11,26 @@ class ResNet9(ndl.nn.Module):
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
-        self.block1 = nn.ConvBN(3, 16, 7, 4)
-        self.block2 = nn.ConvBN(16, 32, 3, 2)
+        self.block1 = nn.ConvBN(3, 16, 7, 4, device=device, dtype=dtype)
+        self.block2 = nn.ConvBN(16, 32, 3, 2, device=device, dtype=dtype)
         self.res1 = nn.Residual(
             nn.Sequential(
-                nn.ConvBN(32, 32, 3, 1),
-                nn.ConvBN(32, 32, 3, 1)
+                nn.ConvBN(32, 32, 3, 1, device=device, dtype=dtype),
+                nn.ConvBN(32, 32, 3, 1, device=device, dtype=dtype)
             )
         )
-        self.block3 = nn.ConvBN(32, 64, 3, 2)
-        self.block4 = nn.ConvBN(64, 128, 3, 2)
+        self.block3 = nn.ConvBN(32, 64, 3, 2, device=device, dtype=dtype)
+        self.block4 = nn.ConvBN(64, 128, 3, 2, device=device, dtype=dtype)
         self.res2 = nn.Residual(
             nn.Sequential(
-                nn.ConvBN(128, 128, 3, 1),
-                nn.ConvBN(128, 128, 3, 1),
+                nn.ConvBN(128, 128, 3, 1, device=device, dtype=dtype),
+                nn.ConvBN(128, 128, 3, 1, device=device, dtype=dtype),
             )
         )
         self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(128, 128)
+        self.linear1 = nn.Linear(128, 128, device=device, dtype=dtype)
         self.relu = nn.ReLU()
-        self.linear2 = nn.Linear(128, 10)
+        self.linear2 = nn.Linear(128, 10, device=device, dtype=dtype)
         ### END YOUR SOLUTION
 
     def forward(self, x):

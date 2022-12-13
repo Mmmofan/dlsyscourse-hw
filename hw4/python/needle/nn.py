@@ -88,8 +88,8 @@ class Linear(Module):
         self.out_features = out_features
 
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(init.kaiming_uniform(self.in_features, self.out_features))
-        self.bias = Parameter(ops.transpose(init.kaiming_uniform(self.out_features, 1))) if bias else None
+        self.weight = Parameter(init.kaiming_uniform(self.in_features, self.out_features, device=device, dtype=dtype))
+        self.bias = Parameter(ops.transpose(init.kaiming_uniform(self.out_features, 1, device=device, dtype=dtype))) if bias else None
         ### END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
@@ -271,7 +271,7 @@ class ConvBN(Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, bias=True, device=None, dtype="float32"):
         super().__init__()
         self.conv = Conv(in_channels, out_channels, kernel_size, stride, bias, device, dtype)
-        self.bn = BatchNorm2d(out_channels)
+        self.bn = BatchNorm2d(out_channels, device=device, dtype=dtype)
         self.relu = ReLU()
 
     def forward(self, x: Tensor) -> Tensor:
