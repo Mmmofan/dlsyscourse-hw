@@ -155,7 +155,7 @@ class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
         num, classes = logits.shape
-        y_one_hot = init.one_hot(classes, y)
+        y_one_hot = init.one_hot(classes, y, device=y.device)
         loss = (ops.log(ops.exp(logits)) - ops.broadcast_to(
                 ops.reshape(ops.logsumexp(logits, 1), (num, 1)),
             logits.shape)) * y_one_hot
@@ -361,7 +361,50 @@ class RNNCell(Module):
         """
         super().__init__()
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        k = (1 / hidden_size) ** 0.5
+        assert nonlinearity in ['relu', 'tanh']
+        self.activate = ReLU() if nonlinearity == 'relu' else Tanh()
+        self.W_ih = Parameter(
+            init.rand(
+                input_size,
+                hidden_size,
+                low=-k,
+                high=k,
+                device=device,
+                dtype=dtype
+            )
+        )
+        self.W_hh = Parameter(
+            init.rand(
+                hidden_size,
+                hidden_size,
+                low=-k,
+                high=k,
+                device=device,
+                dtype=dtype,
+            )
+        )
+        if bias:
+            self.bias_ih = Parameter(
+                init.rand(
+                    hidden_size,
+                    low=-k,
+                    high=k,
+                    device=device,
+                    dtype=dtype,
+                )
+            )
+            self.bias_hh = Parameter(
+                init.rand(
+                    hidden_size,
+                    low=-k,
+                    high=k,
+                    device=device,
+                    dtype=dtype
+                )
+            )
+        else:
+            self.bias_ih, self.bias_hh = None, None
         ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
@@ -376,7 +419,16 @@ class RNNCell(Module):
             for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        X = X @ self.W_ih
+        if self.bias_ih is not None:
+            X = X + ops.broadcast_to(self.bias_ih, X.shape)
+        if h is not None:
+            X = X + h @ self.W_hh
+        if self.bias_hh is not None:
+            X = X + ops.broadcast_to(self.bias_hh, X.shape)
+        X = self.activate(X)
+
+        return X
         ### END YOUR SOLUTION
 
 

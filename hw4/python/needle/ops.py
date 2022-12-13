@@ -6,9 +6,15 @@ from .autograd import NDArray
 from .autograd import Op, Tensor, Value, TensorOp
 from .autograd import TensorTuple, TensorTupleOp
 from . import init
+from functools import reduce
 import numpy
+import operator
 
 from .backend_selection import array_api, NDArray
+
+
+def prod(x):
+    return reduce(operator.mul, x, 1)
 
 
 class MakeTensorTuple(TensorTupleOp):
@@ -198,7 +204,7 @@ class Transpose(TensorOp):
         else:
             dim[self.axes[0]], dim[self.axes[1]] = \
                 dim[self.axes[1]], dim[self.axes[0]]
-        return a.permute(dim)
+        return a.compact().permute(dim)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -217,7 +223,7 @@ class Reshape(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        return a.reshape(self.shape)
+        return a.compact().reshape(self.shape)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -241,6 +247,8 @@ class BroadcastTo(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         input_shape = node.inputs[0].shape
+        if prod(out_grad.shape) == prod(input_shape):
+            return (out_grad.reshape(input_shape),)
         base_shape = [1] * (len(self.shape) - len(input_shape)) + list(input_shape)
         axes = []
         for i in range(len(base_shape)):
@@ -261,7 +269,9 @@ class Summation(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        if isinstance(self.axes, (tuple, list)) and len(self.axes) > 1:
+        if not isinstance(self.axes, (tuple, list)):
+            return a.sum(self.axes)
+        if len(self.axes) > 1:
             axes = list(self.axes)[::-1]
             increments = 0
             while len(axes) > 0:
@@ -269,7 +279,10 @@ class Summation(TensorOp):
                 axes.pop()
                 increments += 1
             return a
-        return a.sum(self.axes)
+        elif len(self.axes) < 1:
+            return a.sum()
+        else:
+            return a.sum(self.axes)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -355,7 +368,7 @@ class Exp(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return (out_grad * node.inputs[0].exp(),)
+        return (out_grad * exp(node.inputs[0]),)
         ### END YOUR SOLUTION
 
 
@@ -373,8 +386,8 @@ class ReLU(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         inp = node.inputs[0]
-        mask = inp.maximum(0) / inp.maximum(0)
-        return (out_grad * mask,)
+        mask = inp.cached_data.maximum(0) / (inp.cached_data.maximum(0) + 1e-7)
+        return (out_grad * Tensor(mask, device=out_grad.device),)
         ### END YOUR SOLUTION
 
 

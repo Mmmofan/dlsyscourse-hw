@@ -246,7 +246,7 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        if prod(new_shape) != prod(self.shape) or not self.is_compact():
+        if prod(new_shape) != prod(self.shape):
             if -1 in new_shape and new_shape.count(-1) == 1:
                 val = int(prod(self.shape) / prod(new_shape) * -1)
                 tmp_shape = []
