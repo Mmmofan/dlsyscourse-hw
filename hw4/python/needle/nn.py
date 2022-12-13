@@ -457,7 +457,31 @@ class RNN(Module):
         """
         super().__init__()
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.rnn_cells = []
+        self.hidden_size = hidden_size
+        self.device = device
+        self.dtype = dtype
+        self.nonlinearity = nonlinearity
+        for layer_num in range(num_layers):
+            if layer_num == 0:
+                cell = RNNCell(
+                    input_size,
+                    hidden_size,
+                    bias=bias,
+                    nonlinearity=nonlinearity,
+                    device=device,
+                    dtype=dtype
+                )
+            else:
+                cell = RNNCell(
+                    input_size,
+                    hidden_size,
+                    bias=bias,
+                    nonlinearity=nonlinearity,
+                    device=device,
+                    dtype=dtype
+                )
+            self.rnn_cells.append(cell)
         ### END YOUR SOLUTION
 
     def forward(self, X, h0=None):
@@ -473,7 +497,30 @@ class RNN(Module):
         h_n of shape (num_layers, bs, hidden_size) containing the final hidden state for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        seq_len, bs, input_size = X.shape
+        if h0 is None:
+            h0 = init.zeros(
+                seq_len,
+                bs,
+                self.hidden_size,
+                device=self.device,
+                dtype=self.dtype
+            )
+
+        outputs = []
+        for i in range(seq_len):
+            xi = Tensor(X.cached_data[i], device=X.device, dtype=X.dtype)
+            h_n = []
+            for j, cell in enumerate(self.rnn_cells):
+                h_cur = Tensor(h0.cached_data[j], device=h0.device, dtype=h0.dtype)
+                xi = cell(xi, h_cur)
+                h_n.append(xi)
+            # update h0
+            h0 = ops.stack(h_n, 0)
+            outputs.append(xi)
+        outputs = ops.stack(outputs, 0)
+
+        return outputs, h0
         ### END YOUR SOLUTION
 
 

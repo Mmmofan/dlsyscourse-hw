@@ -524,7 +524,6 @@ class Split(TensorTupleOp):
         output = []
         for i in range(B.shape[0]):
             out = B[i].compact()
-            out = out.reshape(list(out.shape)[1:]).compact()
             output.append(out)
         return tuple(output)
         ### END YOUR SOLUTION
