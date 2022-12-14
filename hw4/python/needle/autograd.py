@@ -373,7 +373,12 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     ### BEGIN YOUR SOLUTION
     for idx, node in enumerate(reverse_topo_order):
         node_grads = node_to_output_grads_list[node]
-        sum_grad = node_grads[0] if len(node_grads) == 1 else sum(node_grads)
+        if len(node_grads) == 1:
+            sum_grad = node_grads[0]
+        elif isinstance(node_grads[0], needle.TensorTuple):
+            sum_grad = tuple(sum(node_grads[i]) for i in range(len(node_grads)))
+        else:
+            sum_grad = sum(node_grads)
         node.grad = sum_grad
         input_grads = node.op.gradient_as_tuple(sum_grad, node) if node.op else (Tensor(1),)
         for i in range(len(node.inputs)):

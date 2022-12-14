@@ -459,6 +459,7 @@ class RNN(Module):
         ### BEGIN YOUR SOLUTION
         self.rnn_cells = []
         self.hidden_size = hidden_size
+        self.num_layers = num_layers
         self.device = device
         self.dtype = dtype
         self.nonlinearity = nonlinearity
@@ -500,7 +501,7 @@ class RNN(Module):
         seq_len, bs, input_size = X.shape
         if h0 is None:
             h0 = init.zeros(
-                seq_len,
+                self.num_layers,
                 bs,
                 self.hidden_size,
                 device=self.device,
@@ -508,17 +509,17 @@ class RNN(Module):
             )
 
         outputs = []
-        for i in range(seq_len):
-            xi = Tensor(X.cached_data[i], device=X.device, dtype=X.dtype)
-            h_n = []
+        X_split = ops.split(X, 0) # seq_len of [bs, input_size]
+        h_split = list(ops.split(h0, 0)) # num_layer of [bs, hidden_size]
+        for xi in X_split:
             for j, cell in enumerate(self.rnn_cells):
-                h_cur = Tensor(h0.cached_data[j], device=h0.device, dtype=h0.dtype)
-                xi = cell(xi, h_cur)
-                h_n.append(xi)
-            # update h0
-            h0 = ops.stack(h_n, 0)
+                hi = h_split[j]
+                hi = cell(xi, hi)
+                h_split[j] = hi
+                xi = hi
             outputs.append(xi)
         outputs = ops.stack(outputs, 0)
+        h0 = ops.stack(h_split, 0)
 
         return outputs, h0
         ### END YOUR SOLUTION
